@@ -1,0 +1,28 @@
+apiVersion: k0rdent.mirantis.com/v1beta1
+kind: ProviderInterface
+metadata:
+  name: cluster-api-provider-hetzner
+  labels:
+    helm.toolkit.fluxcd.io/name: cluster-api-provider-hetzner
+    helm.toolkit.fluxcd.io/namespace: kcm-system
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  clusterGVKs:
+    - group: infrastructure.cluster.x-k8s.io
+      version: v1beta1
+      kind: HetznerCluster
+  clusterIdentities:
+    - group: infrastructure.cluster.x-k8s.io
+      version: v1beta1
+      kind: HetznerClusterIdentity
+      references:
+        - group: ""
+          version: v1
+          kind: Secret
+          nameFieldPath: spec.secretRef.name
+          namespaceFieldPath: spec.secretRef.namespace
+    - group: ""
+      version: v1
+      kind: Secret
+  description: "Hetzner infrastructure provider for Cluster API"
