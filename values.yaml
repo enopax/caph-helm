@@ -1,0 +1,9 @@
+configSecret:
+  create: true
+  name: "hetzner-variables"
+  namespace: ""
+
+config:
+  HCLOUD_TOKEN: ""
+
+manager: {}
