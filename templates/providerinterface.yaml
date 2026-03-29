@@ -13,15 +13,6 @@ spec:
       version: v1beta1
       kind: HetznerCluster
   clusterIdentities:
-    - group: infrastructure.cluster.x-k8s.io
-      version: v1beta1
-      kind: HetznerClusterIdentity
-      references:
-        - group: ""
-          version: v1
-          kind: Secret
-          nameFieldPath: spec.secretRef.name
-          namespaceFieldPath: spec.secretRef.namespace
     - group: ""
       version: v1
       kind: Secret

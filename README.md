@@ -7,9 +7,8 @@ This chart follows the k0rdent provider chart pattern (same as the official AWS,
 | Resource | Kind | Description |
 |---|---|---|
 | `hetzner` | `InfrastructureProvider` | CAPI operator resource — fetches CAPH components and manages the CAPH deployment |
-| `cluster-api-provider-hetzner` | `ProviderInterface` | k0rdent CRD — registers `HetznerCluster`/`HetznerClusterIdentity` for credential resolution |
+| `cluster-api-provider-hetzner` | `ProviderInterface` | k0rdent CRD — registers `HetznerCluster` and bare `Secret` as the valid credential identity type |
 | `provider-interface-hetzner` | `ClusterRole` | Aggregated RBAC for the k0rdent manager |
-| `hetzner-variables` | `Secret` | Controller configuration secret (holds `HCLOUD_TOKEN`) |
 
 > **Note:** CAPH itself uses a custom image with diagnostics support: `ghcr.io/enopax/caph:<appVersion>`.
 
@@ -134,42 +133,23 @@ kubectl get providertemplate cluster-api-provider-hetzner-0-0-26 -n kcm-system
 
 ---
 
-### 5. Create the HelmRelease
+### 5. Register the provider in Management
 
-This installs the chart into the cluster, which creates the `InfrastructureProvider`, `ProviderInterface`, `ClusterRole`, and `hetzner-variables` Secret:
+The k0rdent Management controller owns all `HelmRelease` objects labeled `k0rdent.mirantis.com/managed=true`. Creating a standalone HelmRelease will be garbage-collected unless it is registered in `Management.spec.providers`.
+
+Patch the Management object to add hetzner with the explicit template name:
 
 ```bash
-kubectl apply -f - <<'EOF'
-apiVersion: helm.toolkit.fluxcd.io/v2
-kind: HelmRelease
-metadata:
-  name: cluster-api-provider-hetzner
-  namespace: kcm-system
-  labels:
-    k0rdent.mirantis.com/managed: "true"
-spec:
-  chartRef:
-    kind: HelmChart
-    name: cluster-api-provider-hetzner-0-0-26
-    namespace: kcm-system
-  dependsOn:
-    - name: capi
-  install:
-    remediation:
-      remediateLastFailure: true
-      retries: 3
-  interval: 10m0s
-  releaseName: cluster-api-provider-hetzner
-  values: {}
-EOF
+kubectl patch management kcm -n kcm-system --type=json \
+  -p='[{"op":"add","path":"/spec/providers/-","value":{"name":"cluster-api-provider-hetzner","template":"cluster-api-provider-hetzner-0-0-26"}}]'
 ```
 
-Wait for the HelmRelease and InfrastructureProvider to become ready:
+The Management controller will then create the `HelmRelease` and install the chart.
+
+Wait for everything to become ready:
 
 ```bash
-kubectl get helmrelease cluster-api-provider-hetzner -n kcm-system
-# Expected: READY=True
-
+kubectl wait management kcm -n kcm-system --for=condition=Ready --timeout=300s
 kubectl get infrastructureprovider hetzner -n kcm-system
 # Expected: READY=True, INSTALLEDVERSION=v1.0.7
 ```
@@ -183,7 +163,7 @@ kubectl get infrastructureprovider hetzner -n kcm-system
 > - [CAPH preparation guide](https://github.com/syself/cluster-api-provider-hetzner/blob/main/docs/caph/01-getting-started/03-preparation.md) — documents the Hetzner secret format
 > - `templates/providerinterface.yaml` in this chart — lists bare `Secret` as the valid identity type for k0rdent credential resolution
 
-Unlike AWS (which requires global IAM credentials for the controller itself), **CAPH v1.x uses per-cluster credentials only** — the `hetzner-variables` Secret created by this chart is not wired to the controller and can be ignored. All credentials are provided through k0rdent's `Credential` system and referenced from each `HetznerCluster` via `spec.hetznerSecretRef`.
+Unlike AWS (which requires global IAM credentials for the controller itself), **CAPH v1.x uses per-cluster credentials only**. All credentials are provided through k0rdent's `Credential` system and referenced from each `HetznerCluster` via `spec.hetznerSecretRef`.
 
 Because CAPH v1.0.7 has no `HetznerClusterIdentity` CRD, the `ProviderInterface` in this chart allows a plain `Secret` as the identity reference directly.
 
@@ -238,6 +218,8 @@ spec:
       # key.hcloudToken defaults to "hcloud-token" — omit if using the default
 ```
 
+> **Important:** k0rdent does **not** auto-inject the secret name into `HetznerCluster.spec.hetznerSecretRef`. The `Credential` only handles cross-namespace distribution of the identity object. You must explicitly set `spec.config.hetznerSecretRef.name` in your `ClusterDeployment` to match the secret name above.
+
 ---
 
 ## Verification
@@ -259,10 +241,9 @@ kubectl get pods -n kcm-system -l cluster.x-k8s.io/provider=infrastructure-hetzn
 ```
 cluster-api-provider-hetzner/
 ├── Chart.yaml                   # Chart metadata + CAPI contract annotations
-├── values.yaml                  # configSecret + HCLOUD_TOKEN config defaults
+├── values.yaml                  # Manager/deployment/proxy overrides
 └── templates/
     ├── provider.yaml            # InfrastructureProvider (CAPI operator CRD)
     ├── providerinterface.yaml   # ProviderInterface (k0rdent CRD)
-    ├── rbac.yaml                # ClusterRole aggregated to k0rdent manager
-    └── secret.yaml              # hetzner-variables Secret
+    └── rbac.yaml                # ClusterRole aggregated to k0rdent manager
 ```
