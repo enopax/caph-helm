@@ -6,7 +6,7 @@ Helm chart for deploying the [Cluster API Provider Hetzner (CAPH)](https://githu
 
 This chart installs CAPH into a k0rdent management cluster, enabling Kubernetes cluster provisioning on Hetzner Cloud. It is deployed as a k0rdent `ProviderTemplate` and managed by the k0rdent lifecycle.
 
-**Chart Version:** 0.0.26
+**Chart Version:** 0.0.27
 **CAPH Version:** v1.0.7
 
 ## What This Chart Installs
