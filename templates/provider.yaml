@@ -9,4 +9,5 @@ spec:
   # Use custom CAPH image with diagnostics flags support
   deployment:
     containers:
-      - imageUrl: ghcr.io/enopax/caph:{{ .Chart.AppVersion }}
+      - name: manager
+        imageUrl: ghcr.io/enopax/caph:{{ .Chart.AppVersion }}
