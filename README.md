@@ -6,7 +6,7 @@ Helm chart for deploying the [Cluster API Provider Hetzner (CAPH)](https://githu
 
 This chart installs CAPH into a k0rdent management cluster, enabling Kubernetes cluster provisioning on Hetzner Cloud. It is deployed as a k0rdent `ProviderTemplate` and managed by the k0rdent lifecycle.
 
-**Chart Version:** 0.0.27
+**Chart Version:** 0.0.28
 **CAPH Version:** v1.0.7
 
 ## What This Chart Installs
@@ -37,12 +37,12 @@ Example `ProviderTemplate`:
 apiVersion: k0rdent.mirantis.com/v1alpha1
 kind: ProviderTemplate
 metadata:
-  name: cluster-api-provider-hetzner-0-0-26
+  name: cluster-api-provider-hetzner-0-0-28
 spec:
   helm:
     chartSpec:
       chart: cluster-api-provider-hetzner
-      version: 0.0.26
+      version: 0.0.28
       sourceRef:
         kind: HelmRepository
         name: enopax-charts
@@ -112,20 +112,20 @@ EOF
 
 ### 4. Create the ProviderTemplate
 
-The `ProviderTemplate` causes k0rdent to create a `HelmChart` object and validates the chart against the k0rdent schema. Replace `<version>` with the chart version (e.g. `0.0.26` → name suffix `0-0-26`):
+The `ProviderTemplate` causes k0rdent to create a `HelmChart` object and validates the chart against the k0rdent schema. Replace `<version>` with the chart version (e.g. `0.0.27` → name suffix `0-0-27`):
 
 ```bash
 kubectl apply -f - <<'EOF'
 apiVersion: k0rdent.mirantis.com/v1beta1
 kind: ProviderTemplate
 metadata:
-  name: cluster-api-provider-hetzner-0-0-26
+  name: cluster-api-provider-hetzner-0-0-27
   namespace: kcm-system
 spec:
   helm:
     chartSpec:
       chart: cluster-api-provider-hetzner
-      version: 0.0.26
+      version: 0.0.27
       interval: 10m0s
       reconcileStrategy: ChartVersion
       sourceRef:
@@ -137,7 +137,7 @@ EOF
 Wait for the `ProviderTemplate` to become valid:
 
 ```bash
-kubectl get providertemplate cluster-api-provider-hetzner-0-0-26 -n kcm-system
+kubectl get providertemplate cluster-api-provider-hetzner-0-0-27 -n kcm-system
 # Expected: valid: true, providers: [infrastructure-hetzner]
 ```
 
@@ -151,7 +151,7 @@ Patch the Management object to add hetzner with the explicit template name:
 
 ```bash
 kubectl patch management kcm -n kcm-system --type=json \
-  -p='[{"op":"add","path":"/spec/providers/-","value":{"name":"cluster-api-provider-hetzner","template":"cluster-api-provider-hetzner-0-0-26"}}]'
+  -p='[{"op":"add","path":"/spec/providers/-","value":{"name":"cluster-api-provider-hetzner","template":"cluster-api-provider-hetzner-0-0-27"}}]'
 ```
 
 The Management controller will then create the `HelmRelease` and install the chart.
@@ -176,6 +176,8 @@ kubectl get infrastructureprovider hetzner -n kcm-system
 Unlike AWS (which requires global IAM credentials for the controller itself), **CAPH v1.x uses per-cluster credentials only**. All credentials are provided through k0rdent's `Credential` system and referenced from each `HetznerCluster` via `spec.hetznerSecretRef`.
 
 Because CAPH v1.0.7 has no `HetznerClusterIdentity` CRD, the `ProviderInterface` in this chart allows a plain `Secret` as the identity reference directly.
+
+> **Why no `HetznerClusterIdentity` CRD exists:** The original Hetzner CAPI project (`hetznercloud/cluster-api-provider-hcloud`), which had this CRD, was archived. Syself wrote a fresh implementation that simplified credentials to a plain Secret referenced directly by `HetznerCluster.spec.hetznerSecretRef`. The identity indirection layer was not carried over.
 
 > **Note on the secret key:** `HetznerCluster.spec.hetznerSecretRef.key.hcloudToken` is a CRD field that holds the **name of the key** in the secret. Its default is `hcloud-token`. Use the default unless you have a specific reason to override it.
 
