@@ -41,7 +41,7 @@ jobs:
         run: helm package .
 
       - name: Push to GHCR
-        run: helm push cluster-api-provider-hetzner-${{ steps.version.outputs.version }}.tgz oci://ghcr.io/enopax/caph-helm
+        run: helm push cluster-api-provider-hetzner-${{ steps.version.outputs.version }}.tgz oci://ghcr.io/enopax/charts
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

@@ -3,11 +3,11 @@ kind: InfrastructureProvider
 metadata:
   name: hetzner
 spec:
-  version: v1.0.7
+  version: v1.1.6
   fetchConfig:
-    url: https://github.com/syself/cluster-api-provider-hetzner/releases/download/v1.0.7/infrastructure-components.yaml
+    url: https://github.com/syself/cluster-api-provider-hetzner/releases/download/v1.1.6/infrastructure-components.yaml
   # Use custom CAPH image with diagnostics flags support
   deployment:
     containers:
       - name: manager
-        imageUrl: ghcr.io/enopax/caph:{{ .Chart.AppVersion }}
+        imageUrl: ghcr.io/enopax/images/caph:{{ .Chart.AppVersion }}
